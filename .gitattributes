@@ -1,0 +1,15 @@
+* text=auto eol=lf
+
+# Windows 下必须锁 LF：verify.ps1 用「两次运行输出字节一致」判确定性，
+# CRLF/LF 混用会造出假失败。
+*.py   text eol=lf
+*.sp   text eol=lf
+*.md   text eol=lf
+*.toml text eol=lf
+*.ps1  text eol=lf
+*.yml  text eol=lf
+*.svg  text eol=lf
+
+*.png binary
+*.jpg binary
+*.whl binary

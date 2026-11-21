@@ -16,6 +16,20 @@
 结论：**M4 的 e2e 目前判败，败因不是假阳性，是 src/ 仍是臣 M0 的占位入口，核心比对无人实现。**
 M1（Codex）落盘后本节全部重跑，pair_a/b/c/d + error 五对逐条对。
 
+## 更正（17:15 复跑时发现，向群里更正过）
+
+1. **16:19 那条自测命令写错了**：样例文件名是 `pair_a_before.sp` / `pair_a_after.sp`，臣当时写成 `pair_a_old/new`，且多塞了 `--json ... --markdown ...` 两个不属于冻结契约的参数 → argparse 报错返回 **rc=2**，被误读成"rc=3 占位"。正确命令见下方，17:15 已按原文重跑。
+2. **仓库内跑 `python -m unittest discover -s tests -t .` 需要先安装本包**（`pip install -e .` 或 PYTHONPATH 指到 `src`），否则 `import spice_diff` 失败——8 条里 7 过 1 报 ModuleNotFoundError。这不是测试本身的问题，是臣 M0 没在任务单里写明前置。已在下面补上。
+
+## 17:15 复跑（对 src/ 仍是 M0 占位版）
+
+| 检查 | 期望 | 实测 | 判定 |
+|---|---|---|---|
+| 干净 venv `pip install --no-index --find-links pkgs .` | 成功 | EXIT=0 | 过 |
+| `spdiff --version` | 打印版本 | `spice-diff 0.1.0`，rc=0 | 过 |
+| `spdiff pair_a_before.sp pair_a_after.sp` | rc=0 | **rc=3** `core not implemented yet (M1, Codex)` | **败（M1 零落盘）** |
+| `spdiff error_bad_syntax.sp`（单参） | rc=3 | rc=3 + usage | 过 |
+
 ## 踩坑记录（写给 CI 和其他部）
 
 1. `pip install .` 必须**先 cd 进仓库根目录**再跑（README 写法正确）；在别处跑会报 "Directory '.' is not installable"。
