@@ -8,8 +8,8 @@ version = "0.1.0"
 description = "Structural change report between two SPICE netlists (revision review, not LVS)."
 readme = "README.md"
 requires-python = ">=3.9"
-# 许可证待陛下选定（Apache-2.0 / MIT）后再填，见 PLAN.md 第 0 节。
-license = { text = "TBD" }
+# 陛下 11-21 17:29 定：MIT；版权人 XMQ（见仓库根 LICENSE）。
+license = { text = "MIT" }
 authors = [{ name = "spice-diff contributors" }
 ]
 keywords = ["spice", "ngspice", "netlist", "diff", "eda"]
