@@ -20,7 +20,6 @@ x3      1  65ca4b1188723acb   error   3  stdout 0 字节，stderr 带 :5:
 ```
 
 - 自带测试 `Ran 25 tests … OK (expected failures=2)`（清空环境）
-- 仓库根 `Ran 31 tests … OK`（干净克隆、未 `pip install .`）
 - JSON 顶层恰好 `tool/version/summary/changes/exit_code`；报告内无绝对路径
 - x1 明细仅三行（`lvl`/R9、顶层 R2、顶层 C2），**R1 全文不出现** —— 18:56 假差异确认已修
 
@@ -39,16 +38,34 @@ x3      1  65ca4b1188723acb   error   3  stdout 0 字节，stderr 带 :5:
    干净克隆 `discover` 从 rc=1 `ModuleNotFoundError` → **rc=0，31 条全过**。
 4. `tasks/M8-dsh-showdown-1900.md` 第八节：复跑原始数 + 上述全部记录。
 
-## 四、两件要陛下知道的
+## 四、commit 后的独立验证（不是「跑过工作区」）
+
+`git worktree add --detach` 从 commit `feb22b0` 另开一份检出（75 文件，无工作区残留），
+在该目录清空环境跑：
+
+```
+discover rc=0 — Ran 31 tests … OK
+pair_a rc=0 9922843e73d413cf   pair_b rc=1 56a9fa9d36b1e5fd
+pair_c rc=1 be6b5498351c6e0d   pair_d rc=2 b9d9899d6bf097e1
+```
+
+即：**推上去的那份东西自己就能装能跑**，不依赖臣工作区。worktree 已 `worktree remove` 摘除。
+
+## 五、两件要陛下知道的
 
 - **契约第 6 条没落盘**：Hermes 两次说「已写进契约第 6 条」，臣实测 `shared\ACCEPTANCE.md`
-  （74 行，18:18 起未动）内 `param`/`include`/`已知限制` **0 命中**。臣代写被沙箱拒（共享目录
-  不在本会话可写范围，臣不绕行）。**现在 README 有、冻结契约没有，两份各说一套。**
+  （74 行，18:18 起未动）内 `param`/`include`/`已知限制`/`4k7` **0 命中**。臣代写被沙箱拒
+  （共享目录不在本会话可写范围，臣不提权绕行）。**现在 README 有、冻结契约没有，两份各说一套。**
   等 Hermes 自补，或陛下开共享目录写权限、臣照原文拷。
 - **19:34 有人把 B 整体写进仓库根 `src/spice_diff/`**：该目录按分工归 Codex、落盘归 dsh。
   臣查 hash 与 B 位逐字节相同、测试全绿，属提前落盘而非改坏，**未回滚**（删文件不可逆），
-  已一次 commit 收口。这条线要么写明「胜出版落 `src/` 算正常交接」，要么仍走 dsh 拷入。
+  已一次 commit 收口。这条线要么写明「胜版落 `src/` = 正常交接」，要么仍走 dsh 拷入。
 
-## 五、push
+## 六、push
 
 `ahead origin 5`，工作区 0 脏改。push 不归臣，等陛下金口。
+
+## 七、ClawChat 记忆未能更新
+
+`clawchat/memory/groups/cnv_01M7WPQYATEPCA0DGB67XBQ4XJ.md` 本会话**写不进去**（Access denied，
+连新建都不行）。臣已把本节当临时记忆存放；下次开会前先按本文件回填群记忆。
