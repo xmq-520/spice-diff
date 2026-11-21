@@ -1,6 +1,6 @@
 # spice-diff
 
-![status](https://img.shields.io/badge/status-v0.1-brightgreen)
+![status](https://img.shields.io/badge/status-v0.1%20technical%20preview-orange)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![python](https://img.shields.io/badge/python-3.9%2B-blue)
 
@@ -8,9 +8,17 @@
 
 改版之后，两份网表到底差在哪？器件换了值、删了一个、多了一根连接、改在哪个子电路里——一条命令出报告，Markdown 给人看，JSON 给 CI 看。
 
+> **发布定位：v0.1 技术预览（technical preview），不是稳定成品。**
+> 欢迎公开试用、提 issue 反馈；但**不要把它的 `rc=0` 读成「两份网表等价」**，
+> 也不要接进会据此放行的流程。判定边界见下。
+>
+> **验证基数：41 条测试与 8 组样例全部为自造用例，尚无真实改版网表的实测。**
+> 若您在真实项目上跑过，欢迎开 issue 或 PR 提供一组（脱敏即可）——这是 v0.1
+> 唯一没有补上的底气缺口，也是 v0.2 排期的第一依据。
+
 > ✅ **当前状态：核心比对 `core.diff()` 已实现**（11-21 对拍 ④ 胜出版，作者 Hermes）。
-> 五组样例退出码 0/1/1/2/3 全中、坏语法退出码 3 且 stdout 为空、两次运行字节级一致、
-> JSON 顶层字段与本文契约一致；`tests/` 共 31 条测试全过（16 条骨架 + 15 条功能，含 3 条回归）。
+> 八组样例退出码 0/1/1/2/1/2/1/3 全中、坏语法退出码 3 且 stdout 为空、两次运行字节级一致、
+> JSON 顶层字段与本文契约一致；仓库 `tests/` 共 **41 条**测试全过（15 功能 + 7 自检 + 9 M0 + 10 边界，含 2 条 `expectedFailure`）。
 >
 > **已知限制（v0.1，实测确认，尚未修）**
 >
