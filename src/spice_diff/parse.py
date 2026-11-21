@@ -145,9 +145,8 @@ def _device(tokens, line, fname):
             raise ParseError(fname, line, ref, "子电路实例缺少节点或子电路名")
         model = head[-1]
         nodes = head[:-1]
-        for n in nodes:
-            if _looks_numeric(n):
-                raise ParseError(fname, line, ref, "节点名不合法: %s" % n)
+        # SPICE 允许数字节点名（提取工具常直接输出 1 2 3），不再判非法；
+        # 尾部 key=value 已由 _split_params 归入参数，剩下的都当节点。
         return Device(ref, typ, nodes, model, params, " ".join(tokens), line)
 
     if typ in ("R", "C", "L", "V", "I"):
@@ -212,12 +211,31 @@ def parse_text(text: str, fname: str = "<netlist>") -> Circuit:
     circ = Circuit()
     cur: Optional[Subckt] = None
     last_line = 0
+    in_control = False
     for line, logical in _logical_lines(text):
         last_line = line
         tokens = logical.split()
         if not tokens:
             continue
         head = tokens[0].lower()
+
+        # .control ... .endc 里是解释器脚本（set/run/meas/dowhile…），不是网表
+        if head == ".control":
+            in_control = True
+            continue
+        if head == ".endc":
+            in_control = False
+            continue
+        if in_control:
+            continue
+
+        # SPICE 约定：第一行是标题行。但不少工具导出的网表没有标题、首行就是器件，
+        # 所以只在「首行根本解析不成器件」时才当标题跳过，绝不静默吞掉真器件。
+        if line == 1:
+            try:
+                _device(tokens, line, fname)
+            except ParseError:
+                continue
 
         if head == ".subckt":
             if cur is not None:

@@ -156,5 +156,104 @@ class TestIncludeKnownGap(unittest.TestCase):
         self.assertNotEqual(rc, 0, "include 指向不同文件却报等价，就是假阴性：\n" + out)
 
 
+class TestRealNetlistDialect(unittest.TestCase):
+    """真实网表方言：ngspice 官方示例里反复出现的三种写法。
+
+    这三条是 2026-11-21 用 147 份 ngspice 官方示例实测出来的硬伤，
+    修之前 15/18 份真实网表直接解析失败（rc=3），不是内容问题，是方言问题。
+    """
+
+    TITLE_A = (
+        "Inverter example circuit\n"
+        "* 首行是标题，看起来像器件但不是\n"
+        "V1 in 0 DC 1\n"
+        "R1 in n1 1k\n"
+        "R2 n1 0 2k\n"
+        ".end\n"
+    )
+    TITLE_B = TITLE_A.replace("R2 n1 0 2k", "R2 n1 0 3k")
+
+    def test_title_line_is_not_a_device(self):
+        p1, p2 = pair(self.TITLE_A, self.TITLE_B)
+        rc, out, err = run(p1, p2)
+        self.assertEqual(rc, 1, "标题行被当成器件会解析失败或漏器件：%s" % err)
+        self.assertIn("R2", out)
+        self.assertNotIn("Inverter", out, "标题行不该出现在差异里")
+
+    CONTROL_A = (
+        "* control 块测试\n"
+        "V1 in 0 DC 1\n"
+        "R1 in out 1k\n"
+        "C1 out 0 1n\n"
+        ".control\n"
+        "set noaskquit\n"
+        "run\n"
+        "meas tran vout FIND v(out) AT=1n\n"
+        "dowhile ($x < 3)\n"
+        "  let x = x + 1\n"
+        "end\n"
+        ".endc\n"
+        ".end\n"
+    )
+    CONTROL_B = CONTROL_A.replace("C1 out 0 1n", "C1 out 0 2n")
+
+    def test_control_block_is_skipped(self):
+        p1, p2 = pair(self.CONTROL_A, self.CONTROL_B)
+        rc, out, err = run(p1, p2)
+        self.assertEqual(rc, 1, ".control 脚本行不是网表，不该断言失败：%s" % err)
+        self.assertIn("C1", out)
+
+    NUM_A = (
+        "* 数字节点名 + X 实例\n"
+        "R1 1 2 1k\n"
+        "R2 2 0 2k\n"
+        "XU1 1 2 0 sub1\n"
+        ".subckt sub1 a b c\n"
+        "R9 a b 5k\n"
+        ".ends\n"
+        ".end\n"
+    )
+    NUM_B = NUM_A.replace("R2 2 0 2k", "R2 2 0 3k")
+
+    def test_numeric_node_names_are_legal(self):
+        p1, p2 = pair(self.NUM_A, self.NUM_B)
+        rc, out, err = run(p1, p2)
+        self.assertEqual(rc, 1, "数字节点名是合法 SPICE 写法，不该报解析错：%s" % err)
+        self.assertIn("R2", out)
+
+
+    # 同一 refdes 在文件里出现两次、各自指向不同子电路：真实网表里很常见
+    # （ngspice 示例 ltra5_1_line.sp / txl4_1_line.sp 的 xrcv）。
+    # 同一份文件跟自己比必须 rc=0；按 refdes 配对会退化成增删各一条，就是误报。
+    DUP_REF = (
+        "* 同 refdes 多实例\n"
+        "V1 in 0 DC 1\n"
+        "xrcv 3 4 vcc bjtdrvr\n"
+        "xrcv 5 6 vcc dioload\n"
+        "R1 in 3 1k\n"
+        "R2 4 0 2k\n"
+        ".subckt bjtdrvr a b c\n"
+        "Q1 a b c qmod\n"
+        ".ends\n"
+        ".subckt dioload a b c\n"
+        "D1 a b dmod\n"
+        ".ends\n"
+        ".model qmod NPN(IS=1e-15)\n"
+        ".model dmod D(IS=1e-14)\n"
+        ".end\n"
+    )
+
+    def test_duplicate_refdes_self_diff_is_clean(self):
+        p1, p2 = pair(self.DUP_REF, self.DUP_REF)
+        rc, out, err = run(p1, p2)
+        self.assertEqual(rc, 0, "同一份文件跟自己比却报差异，是误报：\n" + out)
+        self.assertIn("无结构差异", out)
+
+    def test_duplicate_refdes_still_detects_real_change(self):
+        changed = self.DUP_REF.replace("R2 4 0 2k", "R2 4 0 3k")
+        p1, p2 = pair(self.DUP_REF, changed)
+        rc, out, err = run(p1, p2)
+        self.assertEqual(rc, 1, "真改动不能因为配对改动而漏掉：\n" + out)
+        self.assertIn("R2 | 2k (2e3) | 3k (3e3)", out)
 if __name__ == "__main__":
     unittest.main()

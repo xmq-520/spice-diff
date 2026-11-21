@@ -159,12 +159,32 @@ def _anchor(net, ports, globals_):
 def _diff_scope(scope, ports_b, devs_b, ports_a, devs_a, globals_):
     changes: List[Change] = []
     pairs: List[Tuple[Device, Device]] = []
+    used_b, used_a = set(), set()
+
+    # 0) 完全相同的实例先一对一配掉。
+    #    同一 refdes 在一个文件里出现多次（实例化不同子电路，如 xrcv->bjtdrvr / xrcv->dioload）
+    #    时，按 refdes 配对会退化成「增删各一条」，导致**同一份文件跟自己比也报差异**。
+    #    先配字面完全相同的，这类文件自然归零；剩下的才按 refdes / 签名走。
+    def _exact_key(d):
+        return (d.ref.upper(), d.typ, d.model, tuple(d.nodes), tuple(sorted(d.params.items())))
+
+    exact_b, exact_a = {}, {}
+    for d in devs_b:
+        exact_b.setdefault(_exact_key(d), []).append(d)
+    for d in devs_a:
+        exact_a.setdefault(_exact_key(d), []).append(d)
+    for key in set(exact_b) & set(exact_a):
+        for db, da in zip(exact_b[key], exact_a[key]):
+            pairs.append((db, da))
+            used_b.add(id(db))
+            used_a.add(id(da))
 
     rb, ra = _by_ref(devs_b), _by_ref(devs_a)
-    used_b, used_a = set(), set()
 
     for ref in sorted(set(rb) & set(ra)):
         if len(rb[ref]) == 1 and len(ra[ref]) == 1 and rb[ref][0].typ == ra[ref][0].typ:
+            if id(rb[ref][0]) in used_b or id(ra[ref][0]) in used_a:
+                continue
             pairs.append((rb[ref][0], ra[ref][0]))
             used_b.add(id(rb[ref][0]))
             used_a.add(id(ra[ref][0]))
@@ -297,7 +317,7 @@ def render_markdown(result: Result, before_name="before", after_name="after") ->
     s = result.summary
     lines = ["# spice-diff：%s → %s" % (_base(before_name), _base(after_name)), ""]
     if not result.changes:
-        lines += ["无结构差异。", "", "退出码 0（两份网表结构等价）。", ""]
+        lines += ["无结构差异。", "", "退出码 0（未发现结构差异；这不等于两份网表等价，见 docs/limitations.md）。", ""]
         return "\n".join(lines)
 
     lines += ["## 变更摘要", "",
