@@ -45,12 +45,16 @@
 
 | 项 | A（Codex） | B（Hermes） |
 |---|---|---|
-| 1 pair_a | — | — |
-| 2 pair_b | — | — |
-| 3 pair_c | — | — |
-| 4 pair_d | — | — |
-| 5 error_bad_syntax | — | — |
-| 6 确定性 | — | — |
-| 7 JSON 契约 | — | — |
-| 8 自带测试 | — | — |
-| **合计 /10** | — | — |
+| 1 pair_a | 0（无交付物） | 1 |
+| 2 pair_b | 0 | 2 |
+| 3 pair_c | 0 | 1 |
+| 4 pair_d | 0 | 2 |
+| 5 error_bad_syntax | 0 | 1 |
+| 6 确定性 | 0 | 1 |
+| 7 JSON 契约 | 0 | 1 |
+| 8 自带测试 | 0 | 1 |
+| **合计 /10** | **0** | **10** |
+
+18:47 实测 `tools\spice-diff-showdown\A\` = **0 个文件**，`shared\spice-diff\src` 仍不存在，A 版无可安装物，十分项全 FAIL。
+B 版十分项全 PASS，原始输出、跑分环境与三处偏差（未落约定目录 / 未自带 `pyproject.toml` / 自带测试在 GBK locale 下 6 条 ERROR）见 `tasks\M8-dsh-showdown-1900.md`。
+加赛样例 18:49:52 已封存于 `extras\`（6 文件带 SHA256），因非并列**未启用**，留作胜者版回归集。
