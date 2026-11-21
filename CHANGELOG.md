@@ -15,7 +15,9 @@
 
 **默认输出不变**
 - 不加 `--explain` 时报告字节级不变，CI 与指纹基线的锚点不受影响。
-- 指纹变化只发生在含 `uncertain` 的两组（`pair_d` / `x2`），原因是上面那句措辞本身就是缺陷，属修复而非回归。
+- 全 15 份样例「与自身比对」全部 rc=0（`error_bad_syntax.sp` 按设计 rc=3）；唯一签名配对路径不变，
+  此前七组 canonical 指纹逐位不变（含 v0.1.1 已改的 `pair_a` = `240a26f7710dc1db`）。
+- 只有报告里出现 `uncertain` 的两组（`pair_d` / `x2`）指纹因上面那句措辞而变，属缺陷修复而非回归。
 
 **新增测试**
 - `tests/functional/test_functional.py::TestExplain` 三条：opt-in 且默认输出逐字节不变、
