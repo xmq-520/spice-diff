@@ -1,9 +1,5 @@
 name: verify
 
-# 本机没有 CI runner，这条 workflow 是给陛下 push 到 GitHub 后用的。
-# 关键差异：GitHub runner 上 pip 直连 pypi.org 可用，所以这里用「正常」安装路径；
-# 本机（无 wheel / site-packages 不可写 / pypi.org 不通）的等价命令见 tools/verify.ps1。
-
 on:
   push:
     branches: [main]
@@ -11,31 +7,45 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        # 契约硬约束是 3.9（README「运行环境」），3.12/3.13 用来证明没混进 3.10+ 语法。
-        python-version: ['3.9', '3.12', '3.13']
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install (editable, no extras)
+          python-version: ${{ matrix.python }}
+      - name: 工具链
+        run: python -m pip install --upgrade pip setuptools wheel
+      - name: 测试
+        run: python -m unittest discover -s tests -t . -v
+        env:
+          PYTHONUTF8: "1"
+      - name: 安装并冒烟
         run: |
-          python -m pip install --upgrade pip
           pip install .
-
-      - name: Entry point works
-        run: spdiff --help
-
-      - name: Unit + contract self-check
-        run: python -m unittest discover -s tests/unit -t . -v
-
-      - name: e2e against examples/ (exit codes, determinism, JSON schema)
-        shell: pwsh
-        run: ./tools/verify.ps1 -SkipInstall -RepoExamples
+          spdiff --version
+      - name: 黄金样例退出码
+        shell: bash
+        run: |
+          check() {
+            rc=0
+            spdiff "$1" "$2" > /dev/null 2>&1 || rc=$?
+            echo "$3 rc=$rc (期望 $4)"
+            test "$rc" = "$4"
+          }
+          check examples/pair_a_before.sp examples/pair_a_after.sp pair_a 0
+          check examples/pair_b_before.sp examples/pair_b_after.sp pair_b 1
+          check examples/pair_c_before.sp examples/pair_c_after.sp pair_c 1
+          check examples/pair_d_before.sp examples/pair_d_after.sp pair_d 2
+          check examples/error_bad_syntax.sp examples/pair_a_before.sp error 3
+      - name: 输出确定性
+        shell: bash
+        run: |
+          spdiff examples/pair_b_before.sp examples/pair_b_after.sp > run1.txt
+          spdiff examples/pair_b_before.sp examples/pair_b_after.sp > run2.txt
+          cmp run1.txt run2.txt
+          echo "两次运行字节一致"
