@@ -99,7 +99,7 @@ spdiff before.sp after.sp --format md -o report.md
 
 ## 样例
 
-`examples/` 下五组规格，黄金期望输出与网表文件正在随 M1 一并入库（当前提交只含规格与单元自检）。目标用例：
+`examples/` 下五组，含黄金期望输出（13 个文件，已入库）：
 
 | 用例 | 验什么 | 期望 |
 |---|---|---|
