@@ -190,5 +190,36 @@ class TestContract(unittest.TestCase):
         self.assertRegex(out.strip(), r'^spice-diff \d+\.\d+\.\d+$')
 
 
+class TestExplain(unittest.TestCase):
+    """--explain：按模块汇总 + 风险提示。默认输出必须一个字节都不变。"""
+
+    def test_explain_is_opt_in_and_byte_stable(self):
+        base = run(*ex("b"))
+        probed = run("--explain", *ex("b"))
+        self.assertEqual(base[0], 1)
+        self.assertEqual(probed[0], 1)
+        self.assertNotIn("按模块汇总", base[1], "默认输出不该多出模块表（会改指纹）")
+        self.assertNotIn("风险提示", base[1])
+        self.assertIn("## 按模块汇总", probed[1])
+        self.assertIn("## 风险提示", probed[1])
+        # 明细与摘要两段必须一致，explain 只加不改
+        for line in base[1].splitlines():
+            self.assertIn(line, probed[1], "explain 不应改动已有行：%r" % line)
+
+    def test_explain_module_row_matches_scope(self):
+        rc, out, _ = run("--explain", *ex("c"))
+        self.assertEqual(rc, 1)
+        self.assertIn("| `buf` | — | — | 1 | — | — | 1 |", out,
+                      "子电路作用域的变更必须落在 buf 那行，不能记到顶层")
+
+    def test_explain_never_changes_exit_code(self):
+        for name, want in (("a", 0), ("b", 1), ("d", 2)):
+            self.assertEqual(run("--explain", *ex(name))[0], want)
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
 if __name__ == "__main__":
     unittest.main()

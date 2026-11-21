@@ -18,6 +18,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("before", nargs="?", help="baseline netlist (.sp/.cir/.net)")
     p.add_argument("after", nargs="?", help="revised netlist")
     p.add_argument("--json", action="store_true", help="emit JSON instead of Markdown")
+    p.add_argument("--explain", action="store_true",
+                   help="Markdown 报告额外给「按模块汇总」和「风险提示」（启发式，非判定）")
     p.add_argument("--format", choices=("md", "json"), default=None, help="output format")
     p.add_argument("-o", "--output", default=None, help="write report to file")
     p.add_argument("--version", action="version", version="spice-diff " + __version__)
@@ -55,7 +57,7 @@ def main(argv=None) -> int:
     if want_json:
         text = render_json(result, args.before, args.after)
     else:
-        text = render_markdown(result, args.before, args.after)
+        text = render_markdown(result, args.before, args.after, explain=args.explain)
 
     if args.output:
         try:

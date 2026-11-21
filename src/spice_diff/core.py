@@ -308,12 +308,74 @@ def _scope_disp(scope):
     return "顶层" if scope == "top" else "`%s`" % scope
 
 
+def _module_table(result: Result) -> List[str]:
+    """按模块（.subckt 作用域）汇总变更数——大面积改动时先看这张表，再看明细。"""
+    order = ["device_added", "device_removed", "param_changed", "connection_changed", "model_changed"]
+    per: Dict[str, Dict[str, int]] = {}
+    for c in result.changes:
+        slot = per.setdefault(c.scope, {k: 0 for k in order})
+        if c.kind in slot:
+            slot[c.kind] += 1
+    if not per:
+        return []
+    scopes = sorted(per, key=lambda s: (s != "top", s))
+
+    def cell(slot, kind):
+        return str(slot[kind]) if slot[kind] else "—"
+
+    lines = ["## 按模块汇总", "",
+             "| 模块 | 新增 | 删除 | 参数 | 连接 | 模型 | 合计 |",
+             "|---|---|---|---|---|---|---|"]
+    for s in scopes:
+        slot = per[s]
+        lines.append("| %s | %s | %s | %s | %s | %s | %d |"
+                     % (_scope_disp(s), cell(slot, "device_added"), cell(slot, "device_removed"),
+                        cell(slot, "param_changed"), cell(slot, "connection_changed"),
+                        cell(slot, "model_changed"), sum(slot.values())))
+    return lines
+
+
+_RISKY_PASSIVE = ("R", "C", "L")
+
+
+def _risk_notes(result: Result) -> List[str]:
+    """风险提示：只做启发式分诊，不做判定，也不替代人工复核。"""
+    s = result.summary
+    notes: List[str] = []
+    if s["device_removed"]:
+        names = [c.refdes for c in result.changes if c.kind == "device_removed" and c.refdes][:6]
+        notes.append("**删除器件 %d 个**%s：先确认不是被搬进子电路；删除常留下悬空节点或未更新的激励。"
+                     % (s["device_removed"], "（%s）" % "、".join(names) if names else ""))
+    if s["connection_changed"]:
+        notes.append("**连接变化 %d 处**：改线最容易造成短路、极性反接或漏接，建议优先人工复核。"
+                     % s["connection_changed"])
+    pas = [c.refdes for c in result.changes
+           if c.kind in ("param_changed",) and c.refdes
+           and c.refdes[0].upper() in _RISKY_PASSIVE]
+    if pas:
+        notes.append("**无源件取值变化 %d 处**（%s）：影响时间常数、阻抗与偏置点，"
+                     "建议与仿真结果对照，不要只看行数。"
+                     % (len(pas), "、".join(pas[:8])))
+    if s["model_changed"]:
+        names = [c.refdes for c in result.changes if c.kind == "model_changed" and c.refdes][:6]
+        notes.append("**模型参数变化 %d 处**%s：影响所有引用该模型的器件，影响面大于改动行数。"
+                     % (s["model_changed"], "（%s）" % "、".join(names) if names else ""))
+    if s["uncertain"]:
+        notes.append("**%d 条无法判定身份**：数量可定、身份不可定，不能据此放行。" % s["uncertain"])
+    if not notes:
+        notes.append("只有新增器件等低风险改动，仍建议对改动所在模块跑一次仿真确认。")
+    return ["## 风险提示", "",
+            "以下为启发式分诊，不是判定结论："] + ["- " + n for n in notes]
+
+
+
 def _base(path):
     """输出里只留文件名——不写绝对路径，保证同一对输入在任何机器上字节一致。"""
     return str(path).replace("\\", "/").rstrip("/").rsplit("/", 1)[-1]
 
 
-def render_markdown(result: Result, before_name="before", after_name="after") -> str:
+def render_markdown(result: Result, before_name="before", after_name="after",
+                    explain: bool = False) -> str:
     s = result.summary
     lines = ["# spice-diff：%s → %s" % (_base(before_name), _base(after_name)), ""]
     if not result.changes:
@@ -324,7 +386,13 @@ def render_markdown(result: Result, before_name="before", after_name="after") ->
               "- 器件新增：%d　器件删除：%d　参数变化：%d　连接变化：%d　模型变化：%d　不确定：%d"
               % (s["device_added"], s["device_removed"], s["param_changed"],
                  s["connection_changed"], s["model_changed"], s["uncertain"]),
-              "", "## 明细", "",
+              ""]
+    if explain:
+        mod = _module_table(result)
+        if mod:
+            lines += mod + [""]
+        lines += _risk_notes(result) + [""]
+    lines += ["## 明细", "",
               "| 类别 | 位置 | 器件 | 变更前 | 变更后 |", "|---|---|---|---|---|"]
 
     for c in result.changes:
@@ -345,10 +413,14 @@ def render_markdown(result: Result, before_name="before", after_name="after") ->
     if unc:
         lines += ["", "## 不确定（需人工判定）", ""]
         for c in unc:
-            lines.append("- %s：%s 的 `%s` —— 数量可定，身份不可定，不猜。候选 `%s`。"
-                         % (c.kind, _scope_disp(c.scope),
-                            "、".join(c.data["candidates"]),
-                            "`, `".join(c.data["candidates"])))
+            cands = c.data["candidates"]
+            if len(cands) == 1:
+                why = "唯一可能是 `%s`，但差一个实例也可能来自别处，无法证明，故不猜。" % cands[0]
+            else:
+                why = "候选有 %d 个（`%s`），多选一即等于猜，不猜。" % (len(cands), "`, `".join(cands))
+            lines.append("- %s：%s 的实例数量对不上，数量可定、身份不可定。%s"
+                         % (c.kind, _scope_disp(c.scope), why))
+        lines += ["", "> 不确定条目不参与 rc=0 判定；一条不确定即退出码 2。"]
 
     if s["uncertain"]:
         lines += ["", "退出码 2（存在无法完全判定的差异）。", ""]
