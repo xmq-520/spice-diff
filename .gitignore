@@ -12,3 +12,7 @@ venv/
 # 本机临时
 *.tmp
 pkgs/
+
+.tmp-*/
+.m13-*
+.dist-check/
