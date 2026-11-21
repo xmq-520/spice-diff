@@ -231,7 +231,10 @@ def parse_text(text: str, fname: str = "<netlist>") -> Circuit:
 
         # SPICE 约定：第一行是标题行。但不少工具导出的网表没有标题、首行就是器件，
         # 所以只在「首行根本解析不成器件」时才当标题跳过，绝不静默吞掉真器件。
-        if line == 1:
+        # 以 "." 开头的一定是语句（.ends/.param/.model…），不是标题；
+        # 否则首行写 `.ends` 会被当标题吞掉，整个文件解析成空电路，
+        # 对着正常网表就报「器件全新增」——接进 CI 就是狼来了。
+        if line == 1 and not tokens[0].startswith("."):
             try:
                 _device(tokens, line, fname)
             except ParseError:

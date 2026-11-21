@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 EXIT_NO_DIFF = 0
 EXIT_DIFF = 1

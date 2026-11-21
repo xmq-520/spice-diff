@@ -255,5 +255,14 @@ class TestRealNetlistDialect(unittest.TestCase):
         rc, out, err = run(p1, p2)
         self.assertEqual(rc, 1, "真改动不能因为配对改动而漏掉：\n" + out)
         self.assertIn("R2 | 2k (2e3) | 3k (3e3)", out)
+    # 首行是 `.ends` 这种语句时不能被当成标题行吞掉，否则解析成空电路、
+    # 对着正常网表会报「器件全新增」，接进 CI 就是把假的当成真的。
+    def test_stray_ends_on_first_line_is_parse_error(self):
+        p1, p2 = pair(".ends\n", ".ends\n")
+        rc, out, err = run(p1, p2)
+        self.assertEqual(rc, 3, "单行 .ends 必须报解析错误：out=%r" % out)
+        self.assertEqual(out, "", "解析失败时 stdout 必须一个字都不出")
+        self.assertIn("没有对应的 .subckt", err)
+
 if __name__ == "__main__":
     unittest.main()
