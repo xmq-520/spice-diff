@@ -187,7 +187,7 @@ class TestContract(unittest.TestCase):
     def test_version(self):
         rc, out, err = run("--version")
         self.assertEqual(rc, 0)
-        self.assertIn("spice-diff 0.1.0", out)
+        self.assertRegex(out.strip(), r'^spice-diff \d+\.\d+\.\d+$')
 
 
 if __name__ == "__main__":
