@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="420" viewBox="0 0 960 420" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Roboto, sans-serif">
+  <rect width="960" height="420" fill="#ffffff"/>
+  <text x="32" y="46" font-size="22" font-weight="600" fill="#111827">spice-diff · 数据流</text>
+  <text x="32" y="72" font-size="13" fill="#6b7280">两张网表进，一份变更报告出。灰色虚线为 v0.1 不做的部分。</text>
+
+  <!-- inputs -->
+  <rect x="32" y="110" width="150" height="56" rx="8" fill="#eef2ff" stroke="#6366f1"/>
+  <text x="107" y="136" font-size="13" fill="#312e81" text-anchor="middle" font-weight="600">before.sp</text>
+  <text x="107" y="154" font-size="11" fill="#4b5563" text-anchor="middle">rev 1</text>
+  <rect x="32" y="186" width="150" height="56" rx="8" fill="#eef2ff" stroke="#6366f1"/>
+  <text x="107" y="212" font-size="13" fill="#312e81" text-anchor="middle" font-weight="600">after.sp</text>
+  <text x="107" y="230" font-size="11" fill="#4b5563" text-anchor="middle">rev 2</text>
+
+  <!-- parse -->
+  <rect x="232" y="130" width="150" height="92" rx="8" fill="#f9fafb" stroke="#9ca3af"/>
+  <text x="307" y="158" font-size="13" fill="#111827" text-anchor="middle" font-weight="600">解析</text>
+  <text x="307" y="178" font-size="11" fill="#4b5563" text-anchor="middle">拼接 + 续行</text>
+  <text x="307" y="194" font-size="11" fill="#4b5563" text-anchor="middle">.subckt 层次</text>
+  <text x="307" y="210" font-size="11" fill="#4b5563" text-anchor="middle">数值单位归一</text>
+
+  <!-- normalize -->
+  <rect x="432" y="130" width="150" height="92" rx="8" fill="#f9fafb" stroke="#9ca3af"/>
+  <text x="507" y="158" font-size="13" fill="#111827" text-anchor="middle" font-weight="600">归一化</text>
+  <text x="507" y="178" font-size="11" fill="#4b5563" text-anchor="middle">器件签名</text>
+  <text x="507" y="194" font-size="11" fill="#4b5563" text-anchor="middle">内部节点拓扑重命名</text>
+  <text x="507" y="210" font-size="11" fill="#4b5563" text-anchor="middle">地=0，.global 固定</text>
+
+  <!-- align -->
+  <rect x="632" y="130" width="150" height="92" rx="8" fill="#fff7ed" stroke="#f59e0b"/>
+  <text x="707" y="158" font-size="13" fill="#7c2d12" text-anchor="middle" font-weight="600">对齐</text>
+  <text x="707" y="178" font-size="11" fill="#4b5563" text-anchor="middle">签名分组配对</text>
+  <text x="707" y="194" font-size="11" fill="#4b5563" text-anchor="middle">多对多→子图匹配</text>
+  <text x="707" y="210" font-size="11" fill="#b45309" text-anchor="middle">不唯一 → uncertain</text>
+
+  <!-- outputs -->
+  <rect x="828" y="118" width="100" height="48" rx="8" fill="#ecfdf5" stroke="#10b981"/>
+  <text x="878" y="140" font-size="12" fill="#065f46" text-anchor="middle" font-weight="600">report.md</text>
+  <text x="878" y="156" font-size="10" fill="#4b5563" text-anchor="middle">贴 PR 评论</text>
+  <rect x="828" y="182" width="100" height="48" rx="8" fill="#ecfdf5" stroke="#10b981"/>
+  <text x="878" y="204" font-size="12" fill="#065f46" text-anchor="middle" font-weight="600">report.json</text>
+  <text x="878" y="220" font-size="10" fill="#4b5563" text-anchor="middle">机读 / CI</text>
+
+  <!-- arrows -->
+  <g stroke="#6b7280" stroke-width="1.5" fill="none" marker-end="url(#a)">
+    <path d="M182 138 H228"/>
+    <path d="M182 214 H228"/>
+    <path d="M382 176 H428"/>
+    <path d="M582 176 H628"/>
+    <path d="M782 160 L824 146"/>
+    <path d="M782 192 L824 202"/>
+  </g>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#6b7280"/>
+    </marker>
+  </defs>
+
+  <!-- not-doing -->
+  <rect x="232" y="272" width="550" height="52" rx="8" fill="#ffffff" stroke="#d1d5db" stroke-dasharray="5 4"/>
+  <text x="248" y="294" font-size="12" fill="#6b7280" font-weight="600">v0.1 不做：</text>
+  <text x="330" y="294" font-size="12" fill="#9ca3af">等价判定（不是 LVS） · 层次展平 · 仿真 · Docker · GUI</text>
+  <text x="248" y="312" font-size="11" fill="#9ca3af">改动只在「解读两份文本」这一层，不碰任何 EDA 工具链。</text>
+
+  <text x="32" y="392" font-size="11" fill="#9ca3af">Python 3.9+ · 仅标准库 · 输出确定性（同输入两次运行字节级一致）</text>
+</svg>

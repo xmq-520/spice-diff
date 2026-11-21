@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spice-diff"
+version = "0.1.0"
+description = "Structural change report between two SPICE netlists (revision review, not LVS)."
+readme = "README.md"
+requires-python = ">=3.9"
+# 许可证待陛下选定（Apache-2.0 / MIT）后再填，见 PLAN.md 第 0 节。
+license = { text = "TBD" }
+authors = [{ name = "spice-diff contributors" }
+]
+keywords = ["spice", "ngspice", "netlist", "diff", "eda"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+]
+dependencies = []
+
+[project.scripts]
+spdiff = "spice_diff.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]

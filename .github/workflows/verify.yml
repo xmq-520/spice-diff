@@ -1,0 +1,41 @@
+name: verify
+
+# 本机没有 CI runner，这条 workflow 是给陛下 push 到 GitHub 后用的。
+# 关键差异：GitHub runner 上 pip 直连 pypi.org 可用，所以这里用「正常」安装路径；
+# 本机（无 wheel / site-packages 不可写 / pypi.org 不通）的等价命令见 tools/verify.ps1。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 契约硬约束是 3.9（README「运行环境」），3.12/3.13 用来证明没混进 3.10+ 语法。
+        python-version: ['3.9', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install (editable, no extras)
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+
+      - name: Entry point works
+        run: spdiff --help
+
+      - name: Unit + contract self-check
+        run: python -m unittest discover -s tests/unit -t . -v
+
+      - name: e2e against examples/ (exit codes, determinism, JSON schema)
+        shell: pwsh
+        run: ./tools/verify.ps1 -SkipInstall -RepoExamples
