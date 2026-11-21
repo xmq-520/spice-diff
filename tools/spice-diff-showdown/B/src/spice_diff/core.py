@@ -23,31 +23,38 @@ EXIT_UNCERTAIN = 2
 EXIT_INPUT_ERROR = 3
 
 _SUFFIX = {"t": 1e12, "g": 1e9, "meg": 1e6, "k": 1e3, "m": 1e-3,
-           "u": 1e-6, "n": 1e-9, "p": 1e-12, "f": 1e-15}
+           "u": 1e-6, "n": 1e-9, "p": 1e-12, "f": 1e-15, "r": 1.0}
 
 _NUM_RE = re.compile(r"^([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)([a-zA-Z]*)$")
+# RKM / 字母内嵌小数：4k7 = 4.7k、1R5 = 1.5、2M2 = 2.2M
+_RKM_RE = re.compile(r"^([+-]?)(\d*)([A-Za-z]+)(\d+)$")
+
+
+def _multiplier(suf: str) -> float:
+    if not suf:
+        return 1.0
+    if suf.startswith("meg"):
+        return 1e6
+    if suf.startswith("mil"):
+        return 25.4e-6
+    return _SUFFIX.get(suf[0], 1.0)
 
 
 def to_number(tok: str) -> Optional[float]:
-    """SPICE 数值：1k / 1000 / 1e3 相等；1MEG / 1e6 相等；1m 一律毫。"""
+    """SPICE 数值：1k / 1000 / 1e3 相等；1MEG / 1e6 相等；1m 一律毫；4k7 = 4.7e3 = 4700。"""
     if tok is None:
         return None
     s = tok.strip()
+    m = _RKM_RE.match(s)
+    if m and not m.group(3).lower().startswith("e"):  # 1e3 不是 RKM
+        sign, ip, suf, fp = m.groups()
+        return float("%s%s.%s" % (sign, ip or "0", fp)) * _multiplier(suf.lower())
     m = _NUM_RE.match(s)
     if not m:
         return None
     val = float(m.group(1))
     suf = m.group(2).lower()
-    if not suf:
-        return val
-    if suf.startswith("meg"):
-        return val * 1e6
-    if suf.startswith("mil"):
-        return val * 25.4e-6
-    c = suf[0]
-    if c in _SUFFIX:
-        return val * _SUFFIX[c]
-    return val  # 1kohm / 10pf 这类尾缀：取首字母单位
+    return val * _multiplier(suf)
 
 
 def fmt_num(v: float) -> str:

@@ -9,9 +9,16 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import re
+import sys
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
+
+# 干净克隆未 pip install . 时，从源码树直接可导入（dsh 部欠账，11-21 19:5x 补）。
+_SRC = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "src"))
+if os.path.isdir(os.path.join(_SRC, "spice_diff")) and _SRC not in sys.path:
+    sys.path.insert(0, _SRC)
 
 from spice_diff import (
     EXIT_DIFF,

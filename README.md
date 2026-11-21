@@ -1,6 +1,6 @@
 # spice-diff
 
-![status](https://img.shields.io/badge/status-WIP-orange)
+![status](https://img.shields.io/badge/status-v0.1-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![python](https://img.shields.io/badge/python-3.9%2B-blue)
 
@@ -8,11 +8,33 @@
 
 改版之后，两份网表到底差在哪？器件换了值、删了一个、多了一根连接、改在哪个子电路里——一条命令出报告，Markdown 给人看，JSON 给 CI 看。
 
-> ⚠️ **当前状态：开发中（骨架）。** 已就位并实测可用：打包安装、命令行、契约定义、单元自检。
-> **尚未实现：核心比对 `core.diff()`。** 现在拿两份网表去比，`spdiff` 会打印
-> `core not implemented yet` 并返回退出码 3 —— 这是占位行为，不是比对结果。
-> 下面的「设计要点 / 契约 / 样例」是**已冻结的目标契约**，请当作规格读，不要当作已交付的功能。
-> 实现落地后会以独立 commit 推上来，届时本节状态同步更新。
+> ✅ **当前状态：核心比对 `core.diff()` 已实现**（11-21 对拍 ④ 胜出版，作者 Hermes）。
+> 五组样例退出码 0/1/1/2/3 全中、坏语法退出码 3 且 stdout 为空、两次运行字节级一致、
+> JSON 顶层字段与本文契约一致；`tests/` 共 31 条测试全过（16 条骨架 + 15 条功能，含 3 条回归）。
+>
+> **已知限制（v0.1，实测确认，尚未修）**
+>
+> 前三条是**假阴性**：工具报「无结构差异」而两份网表其实不等价。**报等价不等于确认等价。**
+>
+> 1. **`.param` 值变化不检出**——器件写 `R1 in n1 rr` 时只按参数名字符串比较，
+>    仅改 `.param rr=1k` → `2k` 会报「无结构差异」（rc=0）。v0.2 解析表达式后解决。
+> 2. **`.include` 不展开**——整行略过。两份网表各自 include 到不同子文件时同样报「无结构差异」。
+>    调用方须先自行展开成单一网表再比较；v0.2 考虑内置展开。
+> 3. **分析语句（`.dc`/`.tran`/`.ac` 等）不参与比对**，改了不报。
+>
+> 以下三条是判定口径，非缺陷：
+>
+> 4. **同 refdes 同类型的器件对，只比较「两侧都出现的参数键」**（`core.py` 的 `_diff_scope`）。
+>    一侧多/少一个位置型参数时，那个参数不进比较，**不会报变化**。等值写法已归一化
+>    （`4k7` = `4.7e3` = `4700`），但「键集合不同」这一类仍会漏判。
+> 5. `2milli` 被按 `mil` 解析成 `5.08e-5`（应为 `2e-3`）；裸 `M` 按「毫」取 `1e-3`、
+>    `2M2` = `2.2e-3`（与 NGSPICE 把裸 `M` 当 `mega` 不同）。此口径已写进契约第 2 条。v0.2 复议。
+> 6. 顶层未声明 `.global` 的网络视为内部节点，**整体改名不算改动**（契约第 2 条要求）。
+>
+> 前三条各有测试守着，以 `expectedFailure` 形式固化在 `tests/`：修好那天它会自己变红提醒，
+> 证据不删。
+>
+> 下面「设计要点 / 契约 / 样例」即 v0.1 契约，已按此实现。
 
 ## 它不是 LVS
 
@@ -60,7 +82,7 @@ spdiff before.sp after.sp --format md -o report.md
 | 0 | 无结构差异 |
 | 1 | 有结构差异 |
 | 2 | 存在无法完全判定的差异（`uncertain`） |
-| 3 | 输入错误（解析失败、文件不存在、核心未实现） |
+| 3 | 输入错误（解析失败、文件不存在） |
 
 ## 契约（v0.1）
 
@@ -107,12 +129,24 @@ spdiff before.sp after.sp --format md -o report.md
 | `pair_b` | 阻值变、电容删、二极管加、model 参数变 | 见 `expected_b.md` |
 | `pair_c` | 改动藏在 `.subckt` 内部 | `scope: buf`，不展平 |
 | `pair_d` | 同签名并联电阻少一个 | `refdes: null` + 候选，退出码 2 |
-| `error_bad_syntax` | 语法错误 | 退出码 3，不输出差异 |
+| `error_bad_syntax` | 语法错误 | 退出码 3，stdout 为空，stderr 带行号 |
+
+`error_bad_syntax` 的报错行号是 **`:5:`**（`M1` 在第 5 行）。
+
+## 测试
+
+```bash
+python -m unittest discover -s tests/unit -t .        # 16 条：打包/CLI 面/退出码/3.9 语法兜底
+python -m unittest discover -s tests/functional -t .  # 15 条：子进程真跑，含 x1-x3 回归
+```
+
+`tests/functional/extras/` 是 11-21 对拍后封存的三对回归样例（x1 等值写法 + 子电路内改动、
+x2 同签名删一、x3 `.global` 锚点），带 SHA256，不许改动。
 
 ## 路线图
 
-- **v0.1**：解析 + 归一化 + 对齐 + Markdown/JSON 双输出（进行中）
-- **v0.2**：`.include` 展开、更多器件类型
+- **v0.1**：解析 + 归一化 + 对齐 + Markdown/JSON 双输出（已交付，见文首已知限制）
+- **v0.2**：`.include` 展开、更多器件类型、补齐「键集合不同」的比较（已知限制 1）
 - **v0.3**：GitHub Action 封装，PR 自动贴变更摘要
 
 ## 许可

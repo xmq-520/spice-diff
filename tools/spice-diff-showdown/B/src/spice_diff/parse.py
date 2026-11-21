@@ -280,7 +280,8 @@ def parse_text(text: str, fname: str = "<netlist>") -> Circuit:
 
 def parse_file(path: str) -> Circuit:
     try:
-        with open(path, "r", encoding="utf-8", errors="replace") as fh:
+        # utf-8-sig：别人存盘常带 BOM，BOM 不能变成器件名的一部分
+        with open(path, "r", encoding="utf-8-sig", errors="replace") as fh:
             text = fh.read()
     except FileNotFoundError:
         raise ParseError(path, 0, "file", "文件不存在")

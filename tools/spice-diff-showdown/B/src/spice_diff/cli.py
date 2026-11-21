@@ -24,7 +24,17 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _force_utf8_streams() -> None:
+    """把 stdout/stderr 钉在 UTF-8：报告要跨机器字节一致，不能跟着本地 locale 变 GBK。"""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+        except Exception:  # 被重定向到不支持 reconfigure 的对象时放行
+            pass
+
+
 def main(argv=None) -> int:
+    _force_utf8_streams()
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.before is None or args.after is None:

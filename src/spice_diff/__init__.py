@@ -1,24 +1,16 @@
-"""spice-diff — structural change report between two SPICE netlists.
+"""spice-diff — 两版 SPICE 网表的结构变更报告（Hermes 实现，④ 对拍用）。
 
-v0.1 契约见 README.md。本包只暴露版本号与退出码常量；
-解析 / 归一化 / 对齐 / diff 核心由 Codex 部在 parser.py、normalize.py、
-align.py、diff.py 中实现，CLI 入口为 cli.py::main。
+模块：parse.py（解析） / core.py（归一化·对齐·diff·渲染） / cli.py（入口）。
+退出码：0 无差异 / 1 有差异 / 2 uncertain / 3 输入错误。
 """
 
 from __future__ import annotations
 
 __version__ = "0.1.0"
 
-# 退出码（README 第 5 节，冻结）
 EXIT_NO_DIFF = 0
 EXIT_DIFF = 1
 EXIT_UNCERTAIN = 2
 EXIT_INPUT_ERROR = 3
 
-__all__ = [
-    "__version__",
-    "EXIT_NO_DIFF",
-    "EXIT_DIFF",
-    "EXIT_UNCERTAIN",
-    "EXIT_INPUT_ERROR",
-]
+__all__ = ["__version__", "EXIT_NO_DIFF", "EXIT_DIFF", "EXIT_UNCERTAIN", "EXIT_INPUT_ERROR"]

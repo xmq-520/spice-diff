@@ -9,9 +9,11 @@ description = "Structural change report between two SPICE netlists (revision rev
 readme = "README.md"
 requires-python = ">=3.9"
 # 陛下 11-21 17:29 定：MIT；版权人 XMQ（见仓库根 LICENSE）。
+# license 走 dynamic 从仓库根 LICENSE 取，setuptools 61~82 都认；
+# 11-21 对拍后补：Hermes 那份漏了 readme，venv 里 pip install . 会在
+# pyprojecttoml.apply_configuration 处 AttributeError 直接失败。
 license = { text = "MIT" }
-authors = [{ name = "spice-diff contributors" }
-]
+authors = [{ name = "XMQ" }]
 keywords = ["spice", "ngspice", "netlist", "diff", "eda"]
 classifiers = [
   "Programming Language :: Python :: 3",

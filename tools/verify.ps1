@@ -141,9 +141,41 @@ Step 'e2e examples (shared)' {
     # negative case: bad syntax must exit 3, never silently emit a report
     $badFile = Join-Path $ex 'error_bad_syntax.sp'
     if (Test-Path $badFile) {
-        try { & $Exe $badFile $badFile 2>&1 | Out-Null } catch { }
-        if ($LASTEXITCODE -ne 3) { [void]$bad.Add('error_bad_syntax: exit ' + $LASTEXITCODE + ', expected 3') }
-        Write-Host ('  error_bad_syntax: rc={0} (want 3)' -f $LASTEXITCODE)
+        # Measure the exit code in a child cmd.exe. The tool writes its diagnostic to
+        # stderr; under $ErrorActionPreference=Stop that raises in PowerShell, so we let a
+        # child cmd.exe do the call and the redirection and report the number through a file
+        # cmd.exe itself writes. Traps that preceded this (kept so nobody re-invents them):
+        #   (a) $LASTEXITCODE directly: NativeCommandError fires first and the value is stale
+        #       (-1, or the previous case's code).
+        #   (b) '(exe ... & echo %ERRORLEVEL%)': %ERRORLEVEL% in a parenthesised block expands
+        #       BEFORE the call, so it always prints the pre-call value (0).
+        #   (c) '& cmd.exe /c "... & echo ... > rc.txt"' with one giant quoted string: cmd.exe
+        #       says "not recognized", the redirect never lands, yet stdout stays 0 bytes -
+        #       the stage reports "stdout=0B" as if it had measured something.
+        # A plain line inside .bat is unambiguous; a missing file is a failure, never a pass.
+        $bat = Join-Path ([IO.Path]::GetTempPath()) 'spdiff-verify-bad.bat'
+        $tmpOut = Join-Path ([IO.Path]::GetTempPath()) 'spdiff-verify-bad-out.txt'
+        $tmpErr = Join-Path ([IO.Path]::GetTempPath()) 'spdiff-verify-bad-err.txt'
+        $rcFile = Join-Path ([IO.Path]::GetTempPath()) 'spdiff-verify-bad-rc.txt'
+        Remove-Item $tmpOut, $tmpErr, $rcFile -ErrorAction SilentlyContinue
+        $lines = @('@echo off',
+                   ('"{0}" "{1}" "{1}" 1> "{2}" 2> "{3}"' -f $Exe, $badFile, $tmpOut, $tmpErr),
+                   ('set "RC=%ERRORLEVEL%"' ),
+                   ('> "{0}" echo %RC%' -f $rcFile))
+        [IO.File]::WriteAllLines($bat, $lines)
+        $null = & cmd.exe /c "`"$bat`""
+        $rcRaw = if (Test-Path $rcFile) { (Get-Content $rcFile -Raw) } else { '' }
+        $rcBad = if ($rcRaw -match '\d+') { [int]$Matches[0] } else { -1 }
+        $stdoutBytes = if (Test-Path $tmpOut) { (Get-Item $tmpOut).Length } else { -1 }
+        $stderrBytes = if (Test-Path $tmpErr) { (Get-Item $tmpErr).Length } else { -1 }
+        # rc=3 alone is not enough: stdout must be empty (no partial report) and
+        # stderr must carry the message with a line number.
+        $errText = if ($stderrBytes -gt 0) { Get-Content $tmpErr -Raw -Encoding UTF8 } else { '' }
+        if ($rcBad -ne 3) { [void]$bad.Add('error_bad_syntax: exit ' + $rcBad + ', expected 3') }
+        if ($stdoutBytes -ne 0) { [void]$bad.Add('error_bad_syntax: wrote ' + $stdoutBytes + ' bytes (stdout must be empty)') }
+        if ($stderrBytes -eq 0) { [void]$bad.Add('error_bad_syntax: no diagnostic on stderr') }
+        elseif ($errText -notmatch ':5:') { [void]$bad.Add('error_bad_syntax: stderr has no :5: line number') }
+        Write-Host ('  error_bad_syntax: rc={0} stdout={1}B stderr={2}B (want rc=3, stdout 0B, stderr line :5:)' -f $rcBad, $stdoutBytes, $stderrBytes)
     }
 
     if ($bad.Count) { throw ($bad -join ' | ') }
