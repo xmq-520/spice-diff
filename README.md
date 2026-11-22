@@ -124,7 +124,7 @@ spdiff --version
 ## 开发
 
 ```bash
-python -m unittest discover -s tests -t .     # 55 条（2 条 expectedFailure 是已知限制的证据）
+python -m unittest discover -s tests -t .     # 63 条（2 条 expectedFailure 是已知限制的证据）
 ```
 
 详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
