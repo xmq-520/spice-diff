@@ -124,10 +124,16 @@ spdiff --version
 ## 开发
 
 ```bash
-python -m unittest discover -s tests -t .     # 41 条（2 条 expectedFailure 是已知限制的证据）
+python -m unittest discover -s tests -t .     # 55 条（2 条 expectedFailure 是已知限制的证据）
 ```
 
 详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+## 验收
+
+- **跑什么**：上面那条 `unittest discover` 命令，在仓库根目录执行。
+- **什么算过**：退出码 `0`，且输出为 `OK (expected failures=2)`；条数与本文件「开发」一节写的数字一致。
+- **谁复核**：改动由**没有写它的人**亲自跑一遍后签字，作者不自签；签字人在群里贴出命令与结果，之后才允许 commit。
 
 ## 路线图
 
